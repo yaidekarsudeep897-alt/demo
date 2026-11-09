@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - SmartGram{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--slate-900);">🔔 Notification Center</h1>
+      <p style="color: var(--slate-600); font-size: 0.9rem;">Real-time alerts, grievance status changes, and Panchayat updates.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="padding: 0;">
+      {% for notif in notifications %}
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--slate-200); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; {% if notif.is_read == 0 %}background: #f0f9ff;{% endif %}">
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <strong style="font-size: 0.95rem; color: var(--slate-900);">{{ notif.title }}</strong>
+              <span class="badge badge-{% if notif.notification_type == 'success' %}resolved{% elif notif.notification_type == 'warning' %}high{% elif notif.notification_type == 'status_change' %}progress{% else %}assigned{% endif %}" style="font-size: 0.68rem;">
+                {{ notif.notification_type }}
+              </span>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--slate-700); margin-bottom: 6px; line-height: 1.5;">
+              {{ notif.message }}
+            </p>
+            <div style="font-size: 0.78rem; color: #64748b;">
+              🕒 {{ notif.created_at }}
+            </div>
+          </div>
+          {% if notif.link %}
+            <div>
+              <a href="{{ notif.link }}" class="btn btn-sm btn-outline" style="white-space: nowrap;">
+                View Details &rarr;
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      {% else %}
+        <div style="padding: 40px; text-align: center; color: #64748b;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">🔕</div>
+          <div style="font-size: 1rem; font-weight: 600;">No notifications at this time.</div>
+          <p style="font-size: 0.85rem; margin-top: 4px;">You're all caught up!</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Citizen Registration - SmartGram{% endblock %}
+
+{% block content %}
+<div style="max-width: 650px; margin: 20px auto;">
+  <div class="card">
+    <div class="card-header" style="background: var(--slate-50);">
+      <div class="card-title">📝 New Citizen Registration</div>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 0.88rem; color: var(--slate-600); margin-bottom: 20px;">
+        Register your citizen account to submit village grievances, track resolution status, and access health camps.
+      </p>
+
+      <form method="POST" action="{{ url_for('register') }}">
+        <div class="form-group">
+          <label class="form-label" for="name">Full Name *</label>
+          <input type="text" id="name" name="name" class="form-control" placeholder="e.g. Ramesh Kumar" required>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="email">Email Address *</label>
+            <input type="email" id="email" name="email" class="form-control" placeholder="ramesh@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="phone">Mobile Number</label>
+            <input type="tel" id="phone" name="phone" class="form-control" placeholder="10-digit mobile number" pattern="[0-9]{10}">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="panchayat_id">Select Your Gram Panchayat *</label>
+          <select id="panchayat_id" name="panchayat_id" class="form-select" required>
+            <option value="">-- Choose Gram Panchayat --</option>
+            {% for p in all_panchayats %}
+              <option value="{{ p.id }}">{{ p.name }} ({{ p.district }} - LGD {{ p.code }})</option>
+            {% endfor %}
+          </select>
+          <small style="color: var(--slate-600); font-size: 0.78rem;">Your grievances will be routed directly to the designated officer of this Panchayat.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="address">Village Address / Ward / House No.</label>
+          <input type="text" id="address" name="address" class="form-control" placeholder="e.g. House No. 15, Near Primary School, Ward 2">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Create Password *</label>
+          <input type="password" id="password" name="password" class="form-control" placeholder="At least 6 characters" minlength="6" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700;">
+          Complete Registration &rarr;
+        </button>
+      </form>
+
+      <div style="margin-top: 20px; text-align: center; font-size: 0.88rem; color: var(--slate-600);">
+        Already registered? <a href="{{ url_for('login') }}" style="font-weight: 700;">Sign in here</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

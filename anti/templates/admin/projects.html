@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Master Project Sanctions - SmartGram Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--slate-900);">🏗️ Development Projects & Budget Sanctions</h1>
+    <p style="color: var(--slate-600); font-size: 0.9rem;">
+      Sanction village capital works, allocate funds, and monitor contractor progress across Gram Panchayats.
+    </p>
+  </div>
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Dashboard</a>
+</div>
+
+<div class="grid-3" style="align-items: flex-start; margin-bottom: 32px;">
+  <!-- Sanction Project Form (2 cols) -->
+  <div style="grid-column: span 2;">
+    <div class="card" style="border: 2px solid var(--primary);">
+      <div class="card-header" style="background: var(--slate-50);">
+        <div class="card-title">➕ Sanction New Village Development Work</div>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('admin_projects') }}">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="panchayat_id">Gram Panchayat *</label>
+              <select name="panchayat_id" id="panchayat_id" class="form-select" required>
+                {% for p in all_panchayats %}
+                  <option value="{{ p.id }}">{{ p.name }} ({{ p.district }} - LGD {{ p.code }})</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="category">Sector / Category *</label>
+              <select name="category" id="category" class="form-select" required>
+                <option value="Roads & Bridges">Roads & Bridges</option>
+                <option value="Drinking Water & Sanitation">Drinking Water & Sanitation</option>
+                <option value="School Infrastructure">School Infrastructure</option>
+                <option value="Health & Wellness">Health & Wellness</option>
+                <option value="Solar & Lighting">Solar & Lighting</option>
+                <option value="Agriculture & Irrigation">Agriculture & Irrigation</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="project_name">Project Title *</label>
+            <input type="text" name="project_name" id="project_name" class="form-control" placeholder="e.g. Concrete Road & Covered Drainage (Ward 2 to 4)" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="description">Detailed Scope of Work *</label>
+            <textarea name="description" id="description" rows="2" class="form-control" placeholder="Technical specifications, dimensions, target wards..." required></textarea>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label" for="sanctioned_amount">Sanctioned Amount (₹) *</label>
+              <input type="number" name="sanctioned_amount" id="sanctioned_amount" class="form-control" placeholder="1250000" min="10000" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="contractor_name">Executing Agency / Contractor:</label>
+              <input type="text" name="contractor_name" id="contractor_name" class="form-control" placeholder="e.g. PWD Contractor or SHG">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="start_date">Work Start Date:</label>
+              <input type="date" name="start_date" id="start_date" class="form-control" value="{{ current_year }}-04-01">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="target_date">Target Completion Date:</label>
+            <input type="date" name="target_date" id="target_date" class="form-control" value="{{ current_year }}-10-31">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; font-weight: 700;">
+            Issue Administrative Sanction Order &rarr;
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guidelines (1 col) -->
+  <div style="grid-column: span 1;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" style="font-size: 0.95rem;">💰 Fund Windows</div>
+      </div>
+      <div class="card-body" style="font-size: 0.82rem; color: var(--slate-700); line-height: 1.6;">
+        <ul style="padding-left: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <li><strong>15th Finance Commission:</strong> Untied and tied grants for sanitation, clean drinking water, and rain harvesting.</li>
+          <li><strong>MGNREGA Convergence:</strong> Labor component for rural link roads, farm ponds, and canal desilting.</li>
+          <li><strong>MPLAD / MLALAD:</strong> High-mast lighting and community center infrastructure.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Master Projects List Table -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">All Sanctioned Works Across Panchayats ({{ projects|length }})</div>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Project Title</th>
+            <th>Panchayat</th>
+            <th>Category</th>
+            <th>Contractor</th>
+            <th>Sanctioned & Spent</th>
+            <th>Target Date</th>
+            <th>Progress</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+            <tr>
+              <td>
+                <strong style="color: var(--slate-900);">{{ p.project_name }}</strong>
+                <div style="font-size: 0.75rem; color: #64748b;">{{ p.description[:60] }}...</div>
+              </td>
+              <td>{{ p.panchayat_name }}</td>
+              <td><span class="badge badge-assigned">{{ p.category }}</span></td>
+              <td style="font-size: 0.82rem;">{{ p.contractor_name or 'Panchayat Agency' }}</td>
+              <td>
+                <div style="font-size: 0.85rem; font-weight: 700;">₹ {{ "{:,.0f}".format(p.sanctioned_amount) }}</div>
+                <div style="font-size: 0.75rem; color: #059669;">Spent: ₹ {{ "{:,.0f}".format(p.expenditure_amount) }}</div>
+              </td>
+              <td style="font-size: 0.8rem; color: #64748b;">{{ p.target_date }}</td>
+              <td style="min-width: 130px;">
+                <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 2px;">{{ p.progress_percent }}%</div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar" style="width: {{ p.progress_percent }}%;"></div>
+                </div>
+              </td>
+              <td>
+                <span class="badge {% if p.status == 'Completed' %}badge-resolved{% else %}badge-progress{% endif %}">
+                  {{ p.status }}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

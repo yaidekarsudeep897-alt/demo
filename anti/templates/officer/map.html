@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Field Visit Map - SmartGram{% endblock %}
+
+{% block extra_head %}
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--slate-900);">🗺️ Officer Field Inspection Map</h1>
+    <p style="color: var(--slate-600); font-size: 0.9rem;">
+      Spatial cluster analysis of complaints in <strong>{{ panchayat.name }}</strong> for route planning and field verifications.
+    </p>
+  </div>
+  <a href="{{ url_for('officer_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Dashboard</a>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div style="font-weight: 700;">
+      {{ complaints|length }} Grievance Markers Plotted in {{ panchayat.name }}
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; font-size: 0.8rem; font-weight: 600;">
+      <span style="display: flex; align-items: center; gap: 4px;">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #ef4444; display: inline-block;"></span> Pending Review
+      </span>
+      <span style="display: flex; align-items: center; gap: 4px;">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; display: inline-block;"></span> In Progress
+      </span>
+      <span style="display: flex; align-items: center; gap: 4px;">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #10b981; display: inline-block;"></span> Resolved
+      </span>
+    </div>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div id="officerFieldMap" style="height: 560px; width: 100%;"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const complaintsData = [
+    {% for c in complaints %}
+      {
+        id: {{ c.id }},
+        tracking_id: "{{ c.tracking_id }}",
+        title: {{ c.title | tojson }},
+        category: {{ c.category | tojson }},
+        subcategory: {{ c.subcategory | tojson }},
+        status: {{ c.status | tojson }},
+        urgency: {{ c.urgency | tojson }},
+        panchayat_name: "{{ panchayat.name }}",
+        location_address: {{ (c.location_address or '') | tojson }},
+        latitude: {{ c.latitude }},
+        longitude: {{ c.longitude }}
+      }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  initPublicProblemMap("officerFieldMap", complaintsData, {{ panchayat.latitude or 25.2818 }}, {{ panchayat.longitude or 82.9739 }}, 14);
+});
+</script>
+{% endblock %}

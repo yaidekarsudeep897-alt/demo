@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Public Budget Transparency & Development Works - SmartGram{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--slate-900);">📊 Public Budget Transparency Portal</h1>
+    <p style="color: var(--slate-600); font-size: 0.9rem;">
+      Open tracking of Gram Panchayat development funds, expenditure, and live project completion.
+    </p>
+  </div>
+  
+  <!-- Panchayat Filter -->
+  <form method="GET" action="{{ url_for('public_budget') }}" style="display: flex; gap: 8px;">
+    <select name="panchayat_id" class="form-select" onchange="this.form.submit()" style="padding: 8px 14px; font-size: 0.88rem;">
+      <option value="">-- All Gram Panchayats --</option>
+      {% for p in all_panchayats %}
+        <option value="{{ p.id }}" {% if selected_panchayat_id == p.id %}selected{% endif %}>{{ p.name }} ({{ p.district }} - LGD {{ p.code }})</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- Panchayat Budget Utilization Summary Cards -->
+<div class="grid-3" style="margin-bottom: 28px;">
+  {% for p in panchayats_summary %}
+    <div class="card" style="margin-bottom: 0;">
+      <div class="card-header" style="background: var(--slate-50);">
+        <strong style="color: var(--primary); font-size: 1rem;">{{ p.name }}</strong>
+        <span style="font-size: 0.75rem; color: #64748b;">Code: {{ p.code }}</span>
+      </div>
+      <div class="card-body">
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+          <span style="color: var(--slate-600);">Sanctioned Budget:</span>
+          <strong>₹ {{ "{:,.2f}".format(p.actual_sanctioned or p.allocated_budget) }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+          <span style="color: var(--slate-600);">Spent to Date:</span>
+          <strong style="color: #059669;">₹ {{ "{:,.2f}".format(p.actual_expenditure or p.spent_budget) }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
+          <span style="color: var(--slate-600);">Works Monitored:</span>
+          <strong>{{ p.project_count }} Projects</strong>
+        </div>
+
+        {% set pct = ((p.actual_expenditure or p.spent_budget) / (p.actual_sanctioned or p.allocated_budget) * 100)|int if (p.actual_sanctioned or p.allocated_budget) > 0 else 0 %}
+        <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: #64748b; margin-top: 10px;">
+          <span>Fund Utilization</span>
+          <strong>{{ pct }}%</strong>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" style="width: {{ pct }}%;"></div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Chart.js Visualization & Insights -->
+<div class="grid-2" style="margin-bottom: 32px; align-items: stretch;">
+  <!-- Sector Breakdown Chart -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <div class="card-title">📈 Expenditure by Sector</div>
+    </div>
+    <div class="card-body" style="display: flex; align-items: center; justify-content: center;">
+      <div style="width: 100%; max-height: 280px;">
+        <canvas id="sectorBudgetChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transparency Audit Principles -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <div class="card-title">🔍 Social Audit & Citizen Quality Oversight</div>
+    </div>
+    <div class="card-body" style="font-size: 0.88rem; color: var(--slate-700); line-height: 1.6;">
+      <p style="margin-bottom: 12px;">
+        Under the Digital Gram initiative, every rupee allocated from Central & State Finance Commissions, MGNREGA, and Jal Jeevan Mission is subject to continuous social audit.
+      </p>
+      <div style="background: #f8fafc; border: 1px solid var(--slate-200); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
+        <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 4px;">🤝 Citizen Feedback on Works:</div>
+        Citizens can rate ongoing or completed road, water, and building projects and alert officers about structural quality issues.
+      </div>
+      <div style="font-size: 0.82rem; color: #64748b;">
+        ✓ Quality inspections recorded by Gram Panchayat officers are visible below.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Development Works Table & Citizen Feedback -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🏗️ Sanctioned Development Works & Physical Progress</div>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Project & Gram Panchayat</th>
+            <th>Sector</th>
+            <th>Contractor</th>
+            <th>Sanctioned & Spent</th>
+            <th>Target Date</th>
+            <th>Physical Progress</th>
+            <th>Citizen Rating / Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for proj in projects %}
+            <tr>
+              <td>
+                <strong style="color: var(--slate-900);">{{ proj.project_name }}</strong>
+                <div style="font-size: 0.78rem; color: #64748b;">📍 {{ proj.panchayat_name }}</div>
+                <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">{{ proj.description[:70] }}...</div>
+              </td>
+              <td><span class="badge badge-assigned">{{ proj.category }}</span></td>
+              <td style="font-size: 0.82rem;">{{ proj.contractor_name or 'Panchayat Agency' }}</td>
+              <td>
+                <div style="font-size: 0.85rem; font-weight: 700; color: #0f172a;">
+                  ₹ {{ "{:,.0f}".format(proj.sanctioned_amount) }}
+                </div>
+                <div style="font-size: 0.75rem; color: #059669;">
+                  Spent: ₹ {{ "{:,.0f}".format(proj.expenditure_amount) }}
+                </div>
+              </td>
+              <td style="font-size: 0.8rem; color: #64748b;">{{ proj.target_date or 'Ongoing' }}</td>
+              <td style="min-width: 140px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 700;">
+                  <span>{{ proj.status }}</span>
+                  <span>{{ proj.progress_percent }}%</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar" style="width: {{ proj.progress_percent }}%;"></div>
+                </div>
+              </td>
+              <td>
+                {% if current_user and current_user.role == 'citizen' %}
+                  <button type="button" onclick="openFeedbackModal({{ proj.id }}, {{ proj.project_name | tojson }})" class="btn btn-sm btn-outline">
+                    ⭐ Rate Quality
+                  </button>
+                {% else %}
+                  <span style="font-size: 0.78rem; color: #64748b;">Sign in to rate</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">No projects found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Citizen Project Quality Feedback -->
+<div id="feedbackModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+  <div style="background: white; border-radius: var(--radius-md); max-width: 480px; width: 90%; padding: 24px; box-shadow: var(--shadow-lg);">
+    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Citizen Quality Feedback</h3>
+    <p id="modalProjectName" style="color: var(--primary); font-weight: 600; font-size: 0.9rem; margin-bottom: 16px;"></p>
+
+    <form id="feedbackForm" method="POST" action="">
+      <div class="form-group">
+        <label class="form-label">Rate Work Quality (1 to 5 Stars):</label>
+        <div class="interactive-rating rating-stars" style="margin-bottom: 10px;">
+          <span class="star" data-value="1">☆</span>
+          <span class="star" data-value="2">☆</span>
+          <span class="star" data-value="3">☆</span>
+          <span class="star" data-value="4">☆</span>
+          <span class="star" data-value="5">☆</span>
+          <input type="hidden" name="rating" id="modalRating" value="5">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="comment">Your Observations / Feedback:</label>
+        <textarea name="comment" id="comment" rows="3" class="form-control" placeholder="Share your honest observation (e.g. concrete curing quality, drainage slope, streetlight illumination, timely work)" required></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" onclick="closeFeedbackModal()" class="btn btn-secondary btn-sm">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Submit Public Feedback</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openFeedbackModal(projectId, projectName) {
+  document.getElementById("modalProjectName").innerText = projectName;
+  document.getElementById("feedbackForm").action = "/project/" + projectId + "/feedback";
+  document.getElementById("feedbackModal").style.display = "flex";
+}
+function closeFeedbackModal() {
+  document.getElementById("feedbackModal").style.display = "none";
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  const ctx = document.getElementById('sectorBudgetChart').getContext('2d');
+  const labels = [
+    {% for c in category_breakdown %}
+      {{ c.category | tojson }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+  const dataValues = [
+    {% for c in category_breakdown %}
+      {{ c.total_spent }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: dataValues,
+        backgroundColor: [
+          '#1e3a8a', '#0d9488', '#f59e0b', '#10b981', '#6366f1', '#ec4899', '#8b5cf6'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: function(item) {
+              return ' ' + item.label + ': ₹ ' + item.raw.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

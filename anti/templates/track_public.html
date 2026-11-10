@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Track Grievance - SmartGram Public Portal{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 10px auto;">
+  <div style="text-align: center; margin-bottom: 24px;">
+    <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--slate-900);">🔍 Public Grievance Tracking</h1>
+    <p style="color: var(--slate-600); font-size: 0.9rem;">
+      Enter your unique SmartGram Tracking ID to view the latest status, inspection notes, and timeline.
+    </p>
+  </div>
+
+  <!-- Search Card -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-body" style="padding: 20px;">
+      <form action="{{ url_for('track_complaint_public') }}" method="GET" style="display: flex; gap: 10px;">
+        <input type="text" name="tracking_id" value="{{ tracking_id or '' }}" placeholder="Enter Tracking ID" class="form-control" style="font-size: 1rem; padding: 12px 16px;" required>
+        <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-weight: 700;">
+          Search Status &rarr;
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% if complaint %}
+    <!-- Stepper Status Summary -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-header" style="background: var(--slate-50); display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 1.15rem; font-weight: 800; color: var(--primary);">{{ complaint.tracking_id }}</span>
+          <span class="badge badge-{% if complaint.status == 'Resolved' %}resolved{% elif complaint.status == 'In Progress' %}progress{% elif complaint.status == 'Assigned' %}assigned{% else %}pending{% endif %}" style="margin-left: 8px;">
+            {{ complaint.status }}
+          </span>
+        </div>
+        <span style="font-size: 0.8rem; color: #64748b;">Filed: {{ complaint.created_at[:10] }}</span>
+      </div>
+      <div class="card-body">
+        <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--slate-900); margin-bottom: 12px;">{{ complaint.title }}</h2>
+        <div style="font-size: 0.88rem; color: var(--slate-600); margin-bottom: 16px;">
+          📍 {{ complaint.panchayat_name }} ({{ complaint.panchayat_district }}) • Category: <strong>{{ complaint.category }} ({{ complaint.subcategory }})</strong>
+        </div>
+
+        <p style="font-size: 0.92rem; color: var(--slate-800); line-height: 1.6; margin-bottom: 20px;">
+          {{ complaint.description }}
+        </p>
+
+        {% if complaint.officer_action_notes or complaint.resolution_notes %}
+          <div style="padding: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); margin-bottom: 20px;">
+            <strong style="color: #166534; font-size: 0.9rem;">Officer Update:</strong>
+            <p style="color: #14532d; font-size: 0.88rem; margin-top: 4px;">
+              {{ complaint.officer_action_notes or complaint.resolution_notes }}
+            </p>
+          </div>
+        {% endif %}
+
+        <!-- Timeline -->
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 14px;">Resolution Timeline</h3>
+        <div class="timeline">
+          {% for log in logs %}
+            <div class="timeline-item">
+              <div class="timeline-marker"></div>
+              <div class="timeline-content">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+                  <strong>{{ log.action_by_name }} ({{ log.action_by_role|capitalize }})</strong>
+                  <span style="color: #64748b; font-size: 0.75rem;">{{ log.created_at }}</span>
+                </div>
+                {% if log.new_status %}
+                  <span class="badge badge-{% if log.new_status == 'Resolved' %}resolved{% elif log.new_status == 'In Progress' %}progress{% else %}assigned{% endif %}" style="font-size: 0.7rem; margin-bottom: 4px;">
+                    {{ log.new_status }}
+                  </span>
+                {% endif %}
+                <p style="font-size: 0.85rem; color: var(--slate-700); margin-top: 2px;">{{ log.notes }}</p>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

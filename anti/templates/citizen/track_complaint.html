@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Track Grievance {{ complaint.tracking_id }} - SmartGram{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+        <span style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">{{ complaint.tracking_id }}</span>
+        <span class="badge badge-{{ complaint.urgency.lower() }}">{{ complaint.urgency }} Urgency</span>
+        <span class="badge badge-{% if complaint.status == 'Resolved' %}resolved{% elif complaint.status == 'In Progress' %}progress{% elif complaint.status == 'Assigned' %}assigned{% else %}pending{% endif %}">
+          {{ complaint.status }}
+        </span>
+      </div>
+      <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--slate-900);">{{ complaint.title }}</h1>
+    </div>
+    {% if current_user and current_user.role == 'citizen' %}
+      <a href="{{ url_for('citizen_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Back to Dashboard</a>
+    {% elif current_user and current_user.role == 'officer' %}
+      <a href="{{ url_for('officer_complaints') }}" class="btn btn-secondary btn-sm">&larr; Back to Officer Complaints</a>
+    {% endif %}
+  </div>
+
+  <!-- Visual Workflow Progress Stepper -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-body" style="padding: 24px 20px;">
+      <div style="display: flex; justify-content: space-between; position: relative;">
+        <!-- Progress bar background line -->
+        <div style="position: absolute; top: 16px; left: 10%; right: 10%; height: 4px; background: #e2e8f0; z-index: 1;"></div>
+        
+        <!-- Step 1: Submitted -->
+        <div style="text-align: center; position: relative; z-index: 2; width: 25%;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: #10b981; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; font-weight: bold;">✓</div>
+          <div style="font-weight: 700; font-size: 0.85rem; color: var(--slate-900);">Submitted</div>
+          <div style="font-size: 0.75rem; color: #64748b;">{{ complaint.created_at[:10] }}</div>
+        </div>
+
+        <!-- Step 2: Assigned -->
+        <div style="text-align: center; position: relative; z-index: 2; width: 25%;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: {% if complaint.status in ['Assigned', 'In Progress', 'Resolved'] %}#10b981{% else %}#cbd5e1{% endif %}; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; font-weight: bold;">
+            {% if complaint.status in ['Assigned', 'In Progress', 'Resolved'] %}✓{% else %}2{% endif %}
+          </div>
+          <div style="font-weight: 700; font-size: 0.85rem; color: var(--slate-900);">Assigned to Officer</div>
+          <div style="font-size: 0.75rem; color: #64748b;">{{ complaint.officer_name or 'Panchayat Officer' }}</div>
+        </div>
+
+        <!-- Step 3: In Progress -->
+        <div style="text-align: center; position: relative; z-index: 2; width: 25%;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: {% if complaint.status in ['In Progress', 'Resolved'] %}#10b981{% elif complaint.status == 'Assigned' %}#3b82f6{% else %}#cbd5e1{% endif %}; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; font-weight: bold;">
+            {% if complaint.status == 'Resolved' %}✓{% else %}3{% endif %}
+          </div>
+          <div style="font-weight: 700; font-size: 0.85rem; color: var(--slate-900);">Work in Progress</div>
+          <div style="font-size: 0.75rem; color: #64748b;">Site action & repairs</div>
+        </div>
+
+        <!-- Step 4: Resolved -->
+        <div style="text-align: center; position: relative; z-index: 2; width: 25%;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: {% if complaint.status == 'Resolved' %}#10b981{% else %}#cbd5e1{% endif %}; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; font-weight: bold;">
+            {% if complaint.status == 'Resolved' %}✓{% else %}4{% endif %}
+          </div>
+          <div style="font-weight: 700; font-size: 0.85rem; color: var(--slate-900);">Resolved</div>
+          <div style="font-size: 0.75rem; color: #64748b;">Verified & closed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-3" style="align-items: flex-start;">
+    <!-- Left Column: Details & Audit Timeline (2 cols) -->
+    <div style="grid-column: span 2;">
+      <!-- Grievance Description Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Grievance Information</div>
+          <span style="font-size: 0.8rem; color: #64748b;">Filed by: {{ complaint.citizen_name }}</span>
+        </div>
+        <div class="card-body">
+          <div style="margin-bottom: 16px;">
+            <strong style="color: var(--slate-600); font-size: 0.82rem; text-transform: uppercase;">Category:</strong>
+            <div style="font-size: 0.95rem; font-weight: 600; color: var(--slate-900);">
+              {{ complaint.category }} &rsaquo; {{ complaint.subcategory }}
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <strong style="color: var(--slate-600); font-size: 0.82rem; text-transform: uppercase;">Description:</strong>
+            <p style="font-size: 0.92rem; color: var(--slate-800); line-height: 1.6; margin-top: 4px; white-space: pre-line;">
+              {{ complaint.description }}
+            </p>
+          </div>
+
+          {% if complaint.location_address %}
+            <div style="margin-bottom: 16px;">
+              <strong style="color: var(--slate-600); font-size: 0.82rem; text-transform: uppercase;">Location / Landmark:</strong>
+              <div style="font-size: 0.9rem; color: var(--slate-800);">📍 {{ complaint.location_address }}</div>
+            </div>
+          {% endif %}
+
+          {% if complaint.photo_url %}
+            <div style="margin-top: 16px;">
+              <strong style="color: var(--slate-600); font-size: 0.82rem; text-transform: uppercase;">Citizen Uploaded Photo:</strong>
+              <div style="margin-top: 6px;">
+                <img src="{{ url_for('static', filename='uploads/' + complaint.photo_url) }}" alt="Issue Photo" style="max-width: 100%; max-height: 280px; border-radius: var(--radius-sm); border: 1px solid var(--slate-200);">
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Resolution Notes (if available) -->
+      {% if complaint.resolution_notes or complaint.officer_action_notes %}
+        <div class="card" style="border-left: 4px solid #10b981; background: #fafbfc;">
+          <div class="card-header" style="background: #ecfdf5;">
+            <div class="card-title" style="color: #065f46; font-size: 1rem;">🛠️ Officer Action & Resolution Summary</div>
+          </div>
+          <div class="card-body">
+            {% if complaint.officer_action_notes %}
+              <div style="margin-bottom: 12px;">
+                <strong>Field Action Notes:</strong>
+                <p style="margin-top: 4px; color: var(--slate-700); font-size: 0.9rem;">{{ complaint.officer_action_notes }}</p>
+              </div>
+            {% endif %}
+
+            {% if complaint.resolution_notes %}
+              <div style="margin-bottom: 12px;">
+                <strong>Resolution Final Report:</strong>
+                <p style="margin-top: 4px; color: var(--slate-700); font-size: 0.9rem;">{{ complaint.resolution_notes }}</p>
+              </div>
+            {% endif %}
+
+            {% if complaint.resolution_photo_url %}
+              <div style="margin-top: 12px;">
+                <strong>Resolution Proof Photo:</strong>
+                <div style="margin-top: 6px;">
+                  <img src="{{ url_for('static', filename='uploads/' + complaint.resolution_photo_url) }}" alt="Resolution Proof" style="max-width: 100%; max-height: 280px; border-radius: var(--radius-sm); border: 1px solid var(--slate-200);">
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Audit Timeline (Main Workflow Tracker) -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📜 Action & Status History Timeline</div>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            {% for log in logs %}
+              <div class="timeline-item">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong style="color: var(--slate-900); font-size: 0.88rem;">
+                      {{ log.action_by_name }} ({{ log.action_by_role|capitalize }})
+                    </strong>
+                    <span style="font-size: 0.75rem; color: #64748b;">{{ log.created_at }}</span>
+                  </div>
+                  {% if log.new_status %}
+                    <div style="margin-bottom: 4px;">
+                      <span class="badge badge-{% if log.new_status == 'Resolved' %}resolved{% elif log.new_status == 'In Progress' %}progress{% else %}assigned{% endif %}" style="font-size: 0.7rem;">
+                        Status: {{ log.new_status }}
+                      </span>
+                    </div>
+                  {% endif %}
+                  <p style="font-size: 0.85rem; color: var(--slate-700); margin: 0; line-height: 1.4;">
+                    {{ log.notes }}
+                  </p>
+                </div>
+              </div>
+            {% else %}
+              <p style="color: #64748b; font-size: 0.85rem;">No action logs recorded yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Citizen Rating & Feedback (If Resolved) -->
+      {% if complaint.status == 'Resolved' and current_user and current_user.role == 'citizen' and current_user.id == complaint.citizen_id %}
+        <div class="card" style="border: 2px solid #10b981;">
+          <div class="card-header" style="background: #ecfdf5;">
+            <div class="card-title" style="color: #065f46; font-size: 1rem;">⭐ Citizen Satisfaction Rating</div>
+          </div>
+          <div class="card-body">
+            {% if complaint.citizen_rating %}
+              <div style="margin-bottom: 8px;">
+                <strong>Your Rating:</strong>
+                <span style="color: #f59e0b; font-size: 1.2rem;">
+                  {% for i in range(complaint.citizen_rating) %}★{% endfor %}{% for i in range(5 - complaint.citizen_rating) %}☆{% endfor %}
+                </span>
+                ({{ complaint.citizen_rating }} / 5)
+              </div>
+              {% if complaint.citizen_feedback %}
+                <p style="color: var(--slate-700); font-size: 0.88rem; font-style: italic;">"{{ complaint.citizen_feedback }}"</p>
+              {% endif %}
+            {% else %}
+              <p style="font-size: 0.85rem; color: var(--slate-600); margin-bottom: 12px;">
+                This grievance has been marked Resolved by the Panchayat Officer. Please rate the quality and speed of resolution:
+              </p>
+              <form method="POST" action="{{ url_for('rate_complaint', complaint_id=complaint.id) }}">
+                <div class="form-group">
+                  <div class="interactive-rating rating-stars" style="margin-bottom: 10px;">
+                    <span class="star" data-value="1">☆</span>
+                    <span class="star" data-value="2">☆</span>
+                    <span class="star" data-value="3">☆</span>
+                    <span class="star" data-value="4">☆</span>
+                    <span class="star" data-value="5">☆</span>
+                    <input type="hidden" name="rating" id="ratingInput" value="5">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <textarea name="feedback" rows="2" class="form-control" placeholder="Optional comments regarding the repair or resolution quality..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-sm btn-success" style="font-weight: 700;">Submit Citizen Feedback</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Right Column: Meta & Map Location (1 col) -->
+    <div style="grid-column: span 1;">
+      <!-- Jurisdiction Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" style="font-size: 0.95rem;">🏛️ Jurisdiction & Routing</div>
+        </div>
+        <div class="card-body" style="font-size: 0.85rem; line-height: 1.7;">
+          <div><strong>Gram Panchayat:</strong> {{ complaint.panchayat_name }}</div>
+          <div><strong>District:</strong> {{ complaint.panchayat_district }}</div>
+          <div><strong>Assigned Officer:</strong> {{ complaint.officer_name or 'Panchayat VDO' }}</div>
+          <div><strong>Filed Date:</strong> {{ complaint.created_at }}</div>
+          <div><strong>Last Update:</strong> {{ complaint.updated_at }}</div>
+        </div>
+      </div>
+
+      <!-- AI Classification Insights Card -->
+      <div class="card" style="border-left: 4px solid var(--primary); background: #fafbfc;">
+        <div class="card-header">
+          <div class="card-title" style="font-size: 0.95rem;">🤖 AI Triage & Prioritization</div>
+        </div>
+        <div class="card-body" style="font-size: 0.82rem; line-height: 1.6;">
+          <div><strong>AI Category:</strong> {{ complaint.ai_predicted_category or complaint.category }}</div>
+          <div><strong>Priority Score:</strong> {{ complaint.ai_priority_score or 65 }} / 100</div>
+          <div><strong>Confidence:</strong> {{ (complaint.ai_confidence * 100)|int if complaint.ai_confidence else 90 }}%</div>
+          {% if complaint.ai_summary %}
+            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--slate-200); color: #64748b; font-style: italic;">
+              "{{ complaint.ai_summary }}"
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Coordinates Map -->
+      {% if complaint.latitude and complaint.longitude %}
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" style="font-size: 0.95rem;">📍 Location Map</div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div id="singleComplaintMap" style="height: 220px; width: 100%;"></div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if complaint.latitude and complaint.longitude %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const map = L.map("singleComplaintMap").setView([{{ complaint.latitude }}, {{ complaint.longitude }}], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  L.marker([{{ complaint.latitude }}, {{ complaint.longitude }}])
+    .addTo(map)
+    .bindPopup("<strong>{{ complaint.tracking_id }}</strong><br>{{ complaint.title }}")
+    .openPopup();
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}School Development & Midday Meal Monitoring - SmartGram{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--slate-900);">🏫 Village School Development Module</h1>
+    <p style="color: var(--slate-600); font-size: 0.9rem;">
+      Monitor village educational infrastructure, basic amenities, and daily Midday Meal (MDM) nutritional standards.
+    </p>
+  </div>
+
+  <div style="display: flex; gap: 8px;">
+    <a href="{{ url_for('submit_complaint') }}?category=School+Problems" class="btn btn-outline btn-sm">
+      📢 Report School Problem
+    </a>
+  </div>
+</div>
+
+<!-- Schools Infrastructure Directory -->
+<div class="grid-3" style="margin-bottom: 36px;">
+  {% for school in schools %}
+    <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column;">
+      <div class="card-header" style="background: var(--slate-50);">
+        <div>
+          <span class="badge badge-assigned" style="font-size: 0.72rem; margin-bottom: 2px;">{{ school.school_type }}</span>
+          <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--slate-900);">{{ school.school_name }}</h3>
+        </div>
+      </div>
+      <div class="card-body" style="flex: 1; font-size: 0.85rem; line-height: 1.6;">
+        <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 10px;">
+          📍 {{ school.panchayat_name }} • Headmaster: {{ school.principal_name or 'N/A' }}
+        </div>
+
+        <div class="grid-2" style="background: var(--slate-50); border: 1px solid var(--slate-200); padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 12px; font-size: 0.82rem;">
+          <div>Students: <strong>{{ school.total_students }}</strong></div>
+          <div>Teachers: <strong>{{ school.total_teachers }}</strong></div>
+        </div>
+
+        <!-- Infrastructure Checklist Badges -->
+        <div style="font-weight: 700; font-size: 0.8rem; color: var(--slate-700); margin-bottom: 6px; text-transform: uppercase;">
+          Facilities & Amenities:
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;">
+          <span class="badge {% if school.has_drinking_water %}badge-resolved{% else %}badge-rejected{% endif %}">
+            {% if school.has_drinking_water %}✓ Pure Drinking Water{% else %}✗ No Clean Water{% endif %}
+          </span>
+          <span class="badge {% if school.has_girls_toilet %}badge-resolved{% else %}badge-rejected{% endif %}">
+            {% if school.has_girls_toilet %}✓ Girls Toilet{% else %}✗ No Girls Toilet{% endif %}
+          </span>
+          <span class="badge {% if school.has_boys_toilet %}badge-resolved{% else %}badge-rejected{% endif %}">
+            {% if school.has_boys_toilet %}✓ Boys Toilet{% else %}✗ No Boys Toilet{% endif %}
+          </span>
+          <span class="badge {% if school.has_electricity %}badge-resolved{% else %}badge-rejected{% endif %}">
+            {% if school.has_electricity %}✓ Electricity{% else %}✗ No Electricity{% endif %}
+          </span>
+          <span class="badge {% if school.has_playground %}badge-resolved{% else %}badge-rejected{% endif %}">
+            {% if school.has_playground %}✓ Playground{% else %}✗ No Playground{% endif %}
+          </span>
+        </div>
+
+        <div style="border-top: 1px solid var(--slate-200); padding-top: 8px; font-size: 0.8rem; color: #64748b; display: flex; justify-content: space-between;">
+          <span>Classrooms: <strong>{{ school.classroom_condition }}</strong></span>
+          <span>Inspected: <strong>{{ school.last_inspection_date or 'Recent' }}</strong></span>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <p style="color: #64748b;">No school records registered yet.</p>
+  {% endfor %}
+</div>
+
+<!-- Midday Meal Logs & Citizen Feedback -->
+<div class="grid-3" style="align-items: flex-start;">
+  <!-- Midday Meal History Table (2 cols) -->
+  <div style="grid-column: span 2;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🍲 Midday Meal (MDM) Daily Distribution Log</div>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date & School</th>
+                <th>Menu Served</th>
+                <th>Beneficiaries</th>
+                <th>Food Quality</th>
+                <th>Cleanliness</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in meals %}
+                <tr>
+                  <td>
+                    <strong>{{ m.date }}</strong>
+                    <div style="font-size: 0.78rem; color: #64748b;">{{ m.school_name }}</div>
+                  </td>
+                  <td style="font-size: 0.85rem; max-width: 220px;">{{ m.menu_served }}</td>
+                  <td style="font-size: 0.85rem;">{{ m.students_served or 'All' }} Students</td>
+                  <td>
+                    <span style="color: #f59e0b; font-weight: bold;">
+                      {% for i in range(m.food_quality_rating or 4) %}★{% endfor %}
+                    </span>
+                  </td>
+                  <td>
+                    <span style="color: #10b981; font-weight: bold;">
+                      {% for i in range(m.cleanliness_rating or 4) %}★{% endfor %}
+                    </span>
+                  </td>
+                  <td style="font-size: 0.78rem; color: #64748b;">{{ m.remarks or 'Satisfactory' }}</td>
+                </tr>
+              {% else %}
+                <tr><td colspan="6" style="text-align: center; color: #64748b; padding: 20px;">No midday meal logs recorded.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Citizen / Parent MDM Feedback Form (1 col) -->
+  <div style="grid-column: span 1;">
+    <div class="card" style="border-top: 4px solid var(--accent);">
+      <div class="card-header">
+        <div class="card-title" style="font-size: 1rem;">🍎 Parent / Citizen Meal Feedback</div>
+      </div>
+      <div class="card-body">
+        {% if current_user and current_user.role == 'citizen' %}
+          <p style="font-size: 0.82rem; color: var(--slate-600); margin-bottom: 14px;">
+            Parents can submit daily feedback on midday meal freshness, hygiene, and portion size.
+          </p>
+          <form method="POST" action="/school/1/meal-feedback" id="mealFeedbackForm">
+            <div class="form-group">
+              <label class="form-label" for="school_select">Select School *</label>
+              <select id="school_select" class="form-select" onchange="document.getElementById('mealFeedbackForm').action = '/school/' + this.value + '/meal-feedback';" required>
+                {% for s in schools %}
+                  <option value="{{ s.id }}">{{ s.school_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Food Quality Rating (1 to 5):</label>
+              <select name="food_quality_rating" class="form-select" required>
+                <option value="5">★★★★★ Excellent / Hot & Fresh</option>
+                <option value="4" selected>★★★★☆ Good</option>
+                <option value="3">★★★☆☆ Average</option>
+                <option value="2">★★☆☆☆ Substandard</option>
+                <option value="1">★☆☆☆☆ Poor / Stale</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Kitchen Cleanliness Rating (1 to 5):</label>
+              <select name="cleanliness_rating" class="form-select" required>
+                <option value="5">★★★★★ Very Clean Utensils & Water</option>
+                <option value="4" selected>★★★★☆ Clean</option>
+                <option value="3">★★★☆☆ Moderate</option>
+                <option value="2">★★☆☆☆ Unhygienic</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="remarks">Comments / Observations:</label>
+              <textarea name="remarks" id="remarks" rows="2" class="form-control" placeholder="e.g. Fresh green vegetables served, clean plates verified." required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm" style="width: 100%; font-weight: 700;">
+              Submit Meal Feedback
+            </button>
+          </form>
+        {% else %}
+          <div style="text-align: center; padding: 20px 0;">
+            <p style="font-size: 0.85rem; color: var(--slate-600); margin-bottom: 12px;">
+              Sign in as a Citizen to submit midday meal quality reviews.
+            </p>
+            <a href="{{ url_for('login') }}" class="btn btn-outline btn-sm">Sign In to Review</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

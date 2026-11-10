@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Platform Analytics & Reports - SmartGram Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--slate-900);">📊 Platform Analytics & Summary Reports</h1>
+    <p style="color: var(--slate-600); font-size: 0.9rem;">
+      Audit performance metrics, resolution velocity, and dispatched SMS/Email notification logs.
+    </p>
+  </div>
+
+  <div style="display: flex; gap: 10px;">
+    <a href="{{ url_for('export_complaints_csv') }}" class="btn btn-success" style="font-weight: 700;">
+      📥 Export Grievances to CSV
+    </a>
+    <button onclick="window.print()" class="btn btn-outline">
+      🖨️ Print Report
+    </button>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Dashboard</a>
+  </div>
+</div>
+
+<!-- Service Category Performance -->
+<div class="card" style="margin-bottom: 28px;">
+  <div class="card-header">
+    <div class="card-title">📋 Category Redressal Breakdown</div>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Service Category</th>
+            <th>Total Filed</th>
+            <th>Successfully Resolved</th>
+            <th>Pending / In Progress</th>
+            <th>Resolution Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in category_stats %}
+            {% set pending_count = cat.count - cat.resolved_count %}
+            {% set pct = ((cat.resolved_count / cat.count * 100)|int) if cat.count > 0 else 0 %}
+            <tr>
+              <td><strong style="color: var(--slate-900);">{{ cat.category }}</strong></td>
+              <td><strong>{{ cat.count }}</strong></td>
+              <td><span style="color: #059669; font-weight: 700;">{{ cat.resolved_count }}</span></td>
+              <td>{{ pending_count }}</td>
+              <td>
+                <span class="badge {% if pct >= 60 %}badge-resolved{% else %}badge-pending{% endif %}">
+                  {{ pct }}%
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Panchayat Redressal Velocity & Satisfaction -->
+<div class="card" style="margin-bottom: 28px;">
+  <div class="card-header">
+    <div class="card-title">🏛️ Gram Panchayat Resolution Velocity & Citizen Ratings</div>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Gram Panchayat</th>
+            <th>Grievances</th>
+            <th>Resolved</th>
+            <th>Resolution Rate</th>
+            <th>Average Citizen Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in panchayat_stats %}
+            {% set pct = ((p.resolved_count / p.total_complaints * 100)|int) if p.total_complaints > 0 else 0 %}
+            <tr>
+              <td><strong>{{ p.name }}</strong></td>
+              <td>{{ p.total_complaints }}</td>
+              <td>{{ p.resolved_count }}</td>
+              <td>
+                <span class="badge {% if pct >= 60 %}badge-resolved{% else %}badge-pending{% endif %}">
+                  {{ pct }}%
+                </span>
+              </td>
+              <td>
+                {% if p.avg_rating %}
+                  <span style="color: #f59e0b; font-weight: bold;">★ {{ "%.1f"|format(p.avg_rating) }}</span> / 5.0
+                {% else %}
+                  <span style="color: #64748b;">Pending ratings</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Notification Logs Audit (Feature 11: SMS/Email Dispatch Simulation) -->
+<div class="card">
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div class="card-title">📱 SMS & Email Notification Transmission Audit</div>
+      <small style="color: var(--slate-600);">Simulated gateway logs for automated citizen & officer alerts</small>
+    </div>
+    <span class="badge badge-resolved">Gateway Active</span>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Channel</th>
+            <th>Recipient</th>
+            <th>Subject / Body Preview</th>
+            <th>Delivery Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in notification_logs %}
+            <tr>
+              <td style="font-size: 0.78rem; color: #64748b; white-space: nowrap;">{{ log.created_at }}</td>
+              <td>
+                <span class="badge {% if log.channel == 'SMS' %}badge-high{% else %}badge-assigned{% endif %}">
+                  {{ log.channel }}
+                </span>
+              </td>
+              <td><strong>{{ log.recipient }}</strong></td>
+              <td style="font-size: 0.82rem; max-width: 380px;">
+                {% if log.subject %}
+                  <strong style="color: var(--slate-900);">{{ log.subject }}</strong><br>
+                {% endif %}
+                <span style="color: var(--slate-700);">{{ log.body[:110] }}{% if log.body|length > 110 %}...{% endif %}</span>
+              </td>
+              <td>
+                <span class="badge badge-resolved">{{ log.status }}</span>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" style="text-align: center; color: #64748b; padding: 20px;">No external notification transmissions recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

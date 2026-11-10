@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Report Village Grievance - SmartGram{% endblock %}
+
+{% block extra_head %}
+<!-- Include Voice and Map scripts -->
+<script src="{{ url_for('static', filename='js/voice.js') }}"></script>
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--slate-900);">📢 Register a Village Grievance</h1>
+      <p style="color: var(--slate-600); font-size: 0.9rem;">
+        Speak or write your issue. Our AI assistant will automatically classify urgency and route it to your Panchayat officer.
+      </p>
+    </div>
+    <a href="{{ url_for('citizen_dashboard') }}" class="btn btn-secondary btn-sm">&larr; Back to Dashboard</a>
+  </div>
+
+  <div class="grid-3" style="align-items: flex-start;">
+    <!-- Main Form (2 cols) -->
+    <div style="grid-column: span 2;">
+      <div class="card">
+        <div class="card-header" style="background: var(--slate-50); display: flex; justify-content: space-between; align-items: center;">
+          <div class="card-title">Complaint Details</div>
+          
+          <!-- Voice Record Trigger -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <select id="voiceLang" class="form-select" style="padding: 4px 8px; font-size: 0.78rem; width: auto;">
+              <option value="en-IN">English (India)</option>
+              <option value="hi-IN">हिन्दी (Hindi)</option>
+            </select>
+            <button type="button" id="voiceRecordBtn" onclick="toggleVoiceRecording()" class="voice-record-btn">
+              <span id="voiceIcon">🎙️</span>
+              <span id="voiceBtnText">Speak Complaint</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div id="voiceStatus" style="font-size: 0.85rem; margin-bottom: 14px;"></div>
+
+          <form method="POST" action="{{ url_for('submit_complaint') }}" enctype="multipart/form-data">
+            <input type="hidden" name="voice_recorded" id="voice_recorded" value="false">
+
+            <!-- Gram Panchayat Selection -->
+            <div class="form-group">
+              <label class="form-label" for="panchayat_id">Relevant Gram Panchayat *</label>
+              <select name="panchayat_id" id="panchayat_id" class="form-select" required>
+                {% for p in all_panchayats %}
+                  <option value="{{ p.id }}" {% if current_user and current_user.panchayat_id == p.id %}selected{% endif %}>
+                    {{ p.name }} ({{ p.district }} - LGD {{ p.code }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Category & Subcategory -->
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label" for="category">Service Category *</label>
+                <select name="category" id="category" class="form-select" onchange="updateSubcategories()" required>
+                  <option value="Village Problems">🏡 Village Problems</option>
+                  <option value="School Problems">🏫 School Problems</option>
+                  <option value="Health Problems">🩺 Health Problems</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="subcategory">Subcategory *</label>
+                <select name="subcategory" id="subcategory" class="form-select" required>
+                  <!-- Populated by JS -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Title -->
+            <div class="form-group">
+              <label class="form-label" for="title">Grievance Title / Short Subject *</label>
+              <input type="text" name="title" id="title" class="form-control" placeholder="e.g. Broken culvert blocking tractor road near canal" onblur="triggerAIClassificationPreview()" required>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" for="description" style="margin-bottom: 0;">Detailed Description *</label>
+                <button type="button" onclick="triggerAIClassificationPreview()" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 0.75rem;">
+                  ⚡ Run AI Analysis
+                </button>
+              </div>
+              <textarea name="description" id="description" rows="4" class="form-control" placeholder="Provide complete details: when the issue started, who is affected, landmark, etc. You can also use the red 'Speak Complaint' button to dictate." onblur="triggerAIClassificationPreview()" required></textarea>
+            </div>
+
+            <!-- Location on Map Picker -->
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="margin-bottom: 0;">Location on Village Map (Click map to drop pin)</label>
+                <button type="button" id="useGpsBtn" class="btn btn-sm btn-outline" style="padding: 3px 8px; font-size: 0.78rem;">
+                  📍 Use Current GPS Location
+                </button>
+              </div>
+              <div id="complaintMapPicker" style="height: 240px; border-radius: var(--radius-sm); border: 1px solid var(--slate-300); margin-bottom: 8px;"></div>
+              
+              <div class="grid-3" style="gap: 10px;">
+                <div style="grid-column: span 1;">
+                  <input type="text" name="latitude" id="latitude" class="form-control" placeholder="Latitude" readonly>
+                </div>
+                <div style="grid-column: span 1;">
+                  <input type="text" name="longitude" id="longitude" class="form-control" placeholder="Longitude" readonly>
+                </div>
+                <div style="grid-column: span 1;">
+                  <input type="text" name="location_address" id="location_address" class="form-control" placeholder="Landmark / Ward">
+                </div>
+              </div>
+            </div>
+
+            <!-- Photo Upload -->
+            <div class="form-group">
+              <label class="form-label" for="photo">Attach Photo / Evidence (Optional)</label>
+              <input type="file" name="photo" id="photo" class="form-control" accept="image/*,.pdf">
+              <small style="color: var(--slate-600); font-size: 0.78rem;">Supports JPG, PNG, WebP or PDF (Max 16MB).</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; font-weight: 700; margin-top: 10px;">
+              Submit Grievance to Panchayat &rarr;
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Assistant & Guidelines Sidebar (1 col) -->
+    <div style="grid-column: span 1;">
+      <!-- AI Preview Card -->
+      <div id="aiClassificationPreview" class="card" style="display: none; border-left: 4px solid #10b981; background: #fafbfc;">
+        <div class="card-header" style="background: #ecfdf5;">
+          <div class="card-title" style="font-size: 0.95rem; color: #065f46;">🤖 AI Assistant Analysis</div>
+        </div>
+        <div class="card-body" style="font-size: 0.85rem;">
+          <div style="margin-bottom: 8px;">
+            <strong style="color: var(--slate-700);">Identified Category:</strong>
+            <div id="aiCategoryText" style="color: #1e3a8a; font-weight: 700;">-</div>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <strong style="color: var(--slate-700);">Assessed Urgency:</strong>
+            <div><span id="aiUrgencyText" class="badge badge-medium">-</span></div>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <strong style="color: var(--slate-700);">AI Summary:</strong>
+            <p id="aiSummaryText" style="color: var(--slate-600); font-style: italic; line-height: 1.4; margin-top: 2px;">-</p>
+          </div>
+          <div style="font-size: 0.75rem; color: #64748b; border-top: 1px dashed var(--slate-200); padding-top: 8px; margin-top: 8px;">
+            ✓ Prioritization score auto-calculated. Officer will review before field dispatch.
+          </div>
+        </div>
+      </div>
+
+      <!-- Guidelines Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" style="font-size: 0.95rem;">📋 Submission Guidelines</div>
+        </div>
+        <div class="card-body" style="font-size: 0.82rem; color: var(--slate-700); line-height: 1.6;">
+          <ul style="padding-left: 16px; display: flex; flex-direction: column; gap: 8px;">
+            <li><strong>Accuracy:</strong> Be specific about location and landmarks so field teams can locate it quickly.</li>
+            <li><strong>Voice Input:</strong> Click the red microphone button to speak in English or Hindi. Your speech converts into text automatically.</li>
+            <li><strong>Photos:</strong> Uploading clear photos helps Panchayat officers assess priority and sanction repairs faster.</li>
+            <li><strong>Tracking:</strong> You will receive a unique tracking ID to follow status updates in real-time.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const subcategoriesMap = {
+  "Village Problems": ["Roads", "Streetlights", "Drainage", "Water Supply", "Waste Management", "Electricity", "Canal / Culvert", "Public Toilet"],
+  "School Problems": ["Drinking Water", "Classroom & Infrastructure", "Sanitation / Toilets", "Midday Meal", "Teacher Availability", "Playground / Sports"],
+  "Health Problems": ["PHC / Dispensary Services", "Medicine & Supplies", "Doctor / Staff Availability", "Health Camp / Immunization", "Sanitation & Vector Control"]
+};
+
+function updateSubcategories() {
+  const cat = document.getElementById("category").value;
+  const subcatSelect = document.getElementById("subcategory");
+  subcatSelect.innerHTML = "";
+
+  const list = subcategoriesMap[cat] || subcategoriesMap["Village Problems"];
+  list.forEach(item => {
+    const opt = document.createElement("option");
+    opt.value = item;
+    opt.textContent = item;
+    subcatSelect.appendChild(opt);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  // Check URL param for pre-selected category
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramCat = urlParams.get('category');
+  if (paramCat) {
+    document.getElementById("category").value = paramCat;
+  }
+  updateSubcategories();
+
+  // Initialize Location Map Picker
+  initComplaintLocationPicker("complaintMapPicker", "latitude", "longitude", "location_address", 25.2818, 82.9739);
+});
+</script>
+{% endblock %}

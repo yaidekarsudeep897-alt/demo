@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - Karnataka Gram Panchayat Services{% endblock %}
+
+{% block content %}
+<div style="max-width: 540px; margin: 20px auto;">
+<div class="card" style="margin-bottom: 0;">
+  <div class="card-header" style="background: var(--slate-50);">
+    <div class="card-title">🔐 Karnataka Gram Panchayat Services Sign In</div>
+  </div>
+  <div class="card-body">
+    <p style="font-size: 0.88rem; color: var(--slate-600); margin-bottom: 20px;">
+      Access your role-based dashboard for citizen services, Panchayat grievance redressal, or administration.
+    </p>
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <div class="form-group">
+        <label class="form-label" for="email">Official or Registered Email Address</label>
+        <input type="email" id="email" name="email" class="form-control" placeholder="e.g. name@smartgram.gov.in or user@gmail.com" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700; margin-top: 8px;">
+        Sign In & Access Dashboard &rarr;
+      </button>
+    </form>
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--slate-200); text-align: center; font-size: 0.88rem;">
+      Don't have a citizen account? <a href="{{ url_for('register') }}" style="font-weight: 700;">Register as Citizen</a>
+    </div>
+  </div>
+</div>
+</div>
+
+{% endblock %}
